@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main, openrealtime]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
+      - run: cargo fmt --all --check
+        working-directory: server
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: server
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake pkg-config libssl-dev libasound2-dev
+      - name: Clippy (binary-audio)
+        run: cargo clippy --lib --tests --bins --no-default-features --features binary-audio -- -D warnings
+        working-directory: server
+      - name: Clippy (text-audio)
+        run: cargo clippy --lib --tests --bins --no-default-features --features text-audio -- -D warnings
+        working-directory: server
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: server
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake pkg-config libssl-dev libasound2-dev
+      - name: Test (binary-audio)
+        run: cargo test --lib --tests --bins --no-default-features --features binary-audio
+        working-directory: server
+      - name: Test (text-audio)
+        run: cargo test --lib --tests --bins --no-default-features --features text-audio
+        working-directory: server
+
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install cargo-audit
+      - run: cargo audit --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2025-0044 --ignore RUSTSEC-2025-0132
+        working-directory: server
+
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: server
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake pkg-config libssl-dev libasound2-dev
+      - run: cargo build --release
+        working-directory: server

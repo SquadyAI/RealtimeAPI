@@ -1,0 +1,234 @@
+# =====================================
+# Realtime ASR - CPU Dockerfile
+# Multi-stage build optimized for caching and small runtime image
+# =====================================
+
+ARG RUST_VERSION=nightly
+ARG CARGO_FEATURES=text-audio
+
+# =====================================
+# Stage 1: Base build environment
+# =====================================
+FROM ubuntu:22.04 AS base
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=apt-cache \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked,id=apt-lib \
+    echo 'APT::Install-Recommends "false";' > /etc/apt/apt.conf.d/99norecommends && \
+    echo 'APT::Install-Suggests "false";' >> /etc/apt/apt.conf.d/99norecommends && \
+    echo 'APT::Get::Assume-Yes "true";' >> /etc/apt/apt.conf.d/99assumeyes && \
+    echo 'Dpkg::Use-Pty "0";' >> /etc/apt/apt.conf.d/99nopty && \
+    apt-get update && apt-get install -y \
+    build-essential \
+    pkg-config \
+    cmake \
+    curl \
+    wget \
+    git \
+    unzip \
+    libasound2-dev \
+    libpulse-dev \
+    libjack-jackd2-dev \
+    libssl-dev \
+    ca-certificates \
+    libprotobuf-dev \
+    protobuf-compiler && \
+    apt-get autoremove -y && \
+    apt-get autoclean
+
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV CARGO_HOME=/usr/local/cargo
+ENV PATH=/usr/local/cargo/bin:${PATH}
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly --profile default && \
+    rustup component add rust-src
+
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
+ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
+ENV RUSTFLAGS="--cfg tokio_unstable"
+ENV TOKIO_CONSOLE="true"
+ENV RUST_LOG="debug"
+
+RUN mkdir -p /usr/local/cargo/registry && \
+    chmod 777 /usr/local/cargo/registry
+
+# =====================================
+# Stage 2: ONNX Runtime (CPU)
+# =====================================
+FROM base AS onnx-runtime
+
+ARG ONNX_VERSION=1.22.0
+
+RUN --mount=type=cache,target=/tmp/onnx-cache,id=onnx-cache \
+    ONNX_PACKAGE="onnxruntime-linux-x64-${ONNX_VERSION}" && \
+    ONNX_FILE="${ONNX_PACKAGE}.tgz" && \
+    if [ ! -f "/tmp/onnx-cache/${ONNX_FILE}" ]; then \
+      wget -q --timeout=30 --tries=3 "https://github.com/microsoft/onnxruntime/releases/download/v${ONNX_VERSION}/${ONNX_FILE}" -O "/tmp/onnx-cache/${ONNX_FILE}"; \
+    fi && \
+    cd /tmp && cp "/tmp/onnx-cache/${ONNX_FILE}" . && \
+    tar -xzf "${ONNX_FILE}" && \
+    cp -r "${ONNX_PACKAGE}"/lib/* /usr/local/lib/ && \
+    cp -r "${ONNX_PACKAGE}"/include/* /usr/local/include/ && \
+    ldconfig && \
+    rm -rf /tmp/"${ONNX_PACKAGE}" /tmp/"${ONNX_FILE}"
+
+ENV ORT_LIB_LOCATION=/usr/local/lib
+ENV ORT_STRATEGY=system
+# 确保链接器能找到 onnxruntime
+ENV LIBRARY_PATH=/usr/local/lib
+
+# =====================================
+# Stage 3: Cache Rust dependencies
+# =====================================
+FROM onnx-runtime AS deps-cache
+
+ARG CARGO_FEATURES
+
+WORKDIR /usr/src/app
+
+COPY Cargo.toml Cargo.lock ./
+
+RUN mkdir -p src && \
+    echo "fn main() {}" > src/main.rs && \
+    echo 'pub fn dummy() {}' > src/lib.rs
+
+RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked,id=cargo-registry \
+    --mount=type=cache,target=/usr/local/cargo/git,sharing=locked,id=cargo-git \
+    --mount=type=cache,target=/usr/src/app/target,sharing=locked,id=cargo-target \
+    cargo build --release --jobs 4 --no-default-features --features "${CARGO_FEATURES}"
+
+RUN rm -rf src
+
+# =====================================
+# Stage 4: Build application (兼容性优化)
+# =====================================
+FROM deps-cache AS builder
+
+ARG CARGO_FEATURES
+
+# 依赖缓存通过Docker BuildKit自动处理
+
+COPY src/ ./src/
+
+# 使用 x86-64-v3 作为兼容性基准（支持AVX2，兼容所有环境）
+ENV RUSTFLAGS="-C target-cpu=x86-64-v3 --cfg tokio_unstable"
+# 确保链接器能找到 /usr/local/lib 中的 onnxruntime
+ENV LIBRARY_PATH=/usr/local/lib:${LIBRARY_PATH}
+
+ENV CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
+ENV CARGO_PROFILE_RELEASE_LTO=thin
+ENV CARGO_PROFILE_RELEASE_PANIC=abort
+
+RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked,id=cargo-registry \
+    --mount=type=cache,target=/usr/local/cargo/git,sharing=locked,id=cargo-git \
+    --mount=type=cache,target=/usr/src/app/target,sharing=locked,id=cargo-target \
+    cargo build --release --jobs 4 --no-default-features --features "${CARGO_FEATURES}" && \
+    cp target/release/realtime /usr/local/bin/realtime && \
+    cp src/GeoIP2-City.mmdb /usr/local/bin/GeoIP2-City.mmdb && \
+    ls -la /usr/local/bin/realtime && \
+    ldd /usr/local/bin/realtime
+
+# =====================================
+# Stage 5: Runtime base image
+# =====================================
+FROM ubuntu:22.04 AS runtime-base
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=apt-cache \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked,id=apt-lib \
+    echo 'APT::Install-Recommends "false";' > /etc/apt/apt.conf.d/99norecommends && \
+    echo 'APT::Install-Suggests "false";' >> /etc/apt/apt.conf.d/99norecommends && \
+    echo 'APT::Get::Assume-Yes "true";' >> /etc/apt/apt.conf.d/99assumeyes && \
+    echo 'Dpkg::Use-Pty "0";' >> /etc/apt/apt.conf.d/99nopty && \
+    apt-get update && apt-get install -y \
+    libssl3 \
+    ca-certificates \
+    libasound2 \
+    libpulse0 \
+    curl \
+    htop && \
+    apt-get autoremove -y && \
+    apt-get autoclean
+
+RUN groupadd -r appuser && useradd -r -g appuser -s /bin/false appuser
+
+# =====================================
+# Stage 6: Final runtime image (CPU)
+# =====================================
+FROM runtime-base AS runtime
+
+COPY --from=onnx-runtime /usr/local/lib/libonnxruntime*.so* /usr/local/lib/
+RUN ldconfig
+
+COPY --from=builder /usr/local/bin/realtime /usr/local/bin/realtime
+RUN chmod +x /usr/local/bin/realtime
+
+# 复制 GeoIP2 数据库文件到容器中
+# 从构建阶段复制，确保文件可用
+COPY --from=builder /usr/local/bin/GeoIP2-City.mmdb /app/data/GeoIP2-City.mmdb
+# 复制 GeoNames 城市数据（用于世界时钟离线解析）
+COPY data/cities500.txt /app/data/cities500.txt
+
+RUN mkdir -p /app/{config,logs,recordings,wav_chunks,data} && \
+    chown -R appuser:appuser /app
+
+WORKDIR /app
+
+ENV RUST_LOG=info
+ENV RUST_BACKTRACE=1
+ENV BIND_ADDR=0.0.0.0:8080
+ENV ORT_LIB_LOCATION=/usr/local/lib
+ENV TOKIO_CONSOLE=true
+# 设置默认的 GeoIP2 数据库路径
+ENV GEOIP_MMDB_PATH=/app/data/GeoIP2-City.mmdb
+# 设置默认的 GeoNames 城市数据路径
+ENV GEONAMES_CITIES_FILE=/app/data/cities500.txt
+ENV RUSTFLAGS="-C target-cpu=haswell -C target-feature=+crt-static --cfg tokio_unstable"
+# 生产环境内存优化
+ENV MALLOC_ARENA_MAX=2
+ENV MALLOC_MMAP_THRESHOLD_=131072
+ENV MALLOC_TRIM_THRESHOLD_=131072
+ENV MALLOC_TOP_PAD_=131072
+ENV MALLOC_MMAP_MAX_=65536
+
+EXPOSE 8080 5004 16992
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+USER appuser
+
+CMD ["/usr/local/bin/realtime"]
+
+# =====================================
+# Stage 7: Development image (CPU)
+# =====================================
+FROM onnx-runtime AS development
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=apt-cache \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked,id=apt-lib \
+    --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked,id=cargo-registry \
+    echo 'APT::Install-Recommends "false";' > /etc/apt/apt.conf.d/99norecommends && \
+    echo 'APT::Install-Suggests "false";' >> /etc/apt/apt.conf.d/99norecommends && \
+    echo 'APT::Get::Assume-Yes "true";' >> /etc/apt/apt.conf.d/99assumeyes && \
+    echo 'Dpkg::Use-Pty "0";' >> /etc/apt/apt.conf.d/99nopty && \
+    apt-get update && apt-get install -y \
+    git \
+    vim \
+    gdb \
+    strace && \
+    apt-get autoremove -y && \
+    apt-get autoclean && \
+    RUSTFLAGS="" cargo install cargo-watch cargo-audit
+
+WORKDIR /usr/src/app
+
+COPY Cargo.toml Cargo.lock ./
+
+EXPOSE 8080 5004 16992
+
+ENV RUST_LOG=debug
+ENV RUST_BACKTRACE=full
+
+CMD ["cargo", "watch", "-x", "run"]
+
+LABEL maintainer="Realtime ASR Team"
+LABEL description="Realtime ASR - CPU runtime"
+LABEL version="0.1.0"

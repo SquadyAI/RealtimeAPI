@@ -1,0 +1,9 @@
+.audioVisualizerOverlay {
+    height: 0;
+    z-index: -1;
+
+    canvas {
+        transform: translateY(50%);
+        max-width: 80vw;
+    }
+}

@@ -1,0 +1,165 @@
+.card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    animation: slideIn 0.3s ease-out;
+    flex-shrink: 0;
+    transform-origin: center;
+
+    &.medicine {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+
+    &.meeting {
+        background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+    }
+
+    &.alarm {
+        background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+    }
+
+    &.birthday {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    // 到点提示：变色 + 晃动（保持 slideIn，不影响初次进入动画）
+    &.due {
+        background: linear-gradient(135deg, #ff4b2b 0%, #ff416c 100%);
+        box-shadow: 0 8px 28px rgba(255, 65, 108, 0.35);
+        animation: slideIn 0.3s ease-out, reminderShake 0.45s ease-in-out 0s 4;
+    }
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.typeIcon {
+    font-size: 24px;
+}
+
+.countdown {
+    font-size: 18px;
+    font-weight: bold;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+.content {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.time {
+    font-size: 12px;
+    opacity: 0.8;
+    margin-bottom: 12px;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+
+    button {
+        flex: 1;
+        padding: 8px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: transform 0.2s;
+
+        &:hover {
+            transform: scale(1.05);
+        }
+    }
+}
+
+.completeBtn {
+    background: rgba(255, 255, 255, 0.9);
+    color: #11998e;
+}
+
+.deleteBtn {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes reminderShake {
+    0% { transform: translateX(0); }
+    12.5% { transform: translateX(-3px) rotate(-0.6deg); }
+    25% { transform: translateX(3px) rotate(0.6deg); }
+    37.5% { transform: translateX(-2px) rotate(-0.4deg); }
+    50% { transform: translateX(2px) rotate(0.4deg); }
+    62.5% { transform: translateX(-1px) rotate(-0.2deg); }
+    75% { transform: translateX(1px) rotate(0.2deg); }
+    100% { transform: translateX(0); }
+}
+
+// 手机端便签条状样式
+@media (max-width: 480px) {
+    .card {
+        width: 140px;
+        min-width: 140px;
+        padding: 10px;
+        margin-bottom: 0;
+        margin-right: 8px;
+        border-radius: 16px;
+    }
+
+    .header {
+        margin-bottom: 6px;
+    }
+
+    .typeIcon {
+        font-size: 18px;
+    }
+
+    .countdown {
+        font-size: 12px;
+        padding: 2px 8px;
+    }
+
+    .content {
+        font-size: 13px;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .time {
+        display: none; // 手机端隐藏时间显示
+    }
+
+    .actions {
+        gap: 4px;
+
+        button {
+            padding: 4px 6px;
+            font-size: 11px;
+            border-radius: 6px;
+        }
+    }
+}

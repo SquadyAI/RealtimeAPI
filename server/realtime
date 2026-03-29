@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# ============================================================================
+# SquadyAI Realtime API — Unified CLI Entry Point
+# ============================================================================
+#
+# Usage:
+#   realtime onboard [--step N] [--force] [--lang zh/en]
+#   realtime start   [--reconfigure]
+#   realtime doctor  [--lang zh/en]
+#   realtime version
+#   realtime help
+#
+# Aliases:
+#   setup → onboard    run → start    check → doctor
+# ============================================================================
+
+set -euo pipefail
+
+# ── Resolve install dir (follow symlinks) & project dir ──────────────────
+
+_resolve_dir() {
+    local src="${BASH_SOURCE[0]}"
+    while [[ -L "$src" ]]; do
+        local dir
+        dir="$(cd -P "$(dirname "$src")" && pwd)"
+        src="$(readlink "$src")"
+        [[ "$src" != /* ]] && src="$dir/$src"
+    done
+    cd -P "$(dirname "$src")" && pwd
+}
+
+# REALTIME_HOME: where the scripts live (install location)
+REALTIME_HOME="$(_resolve_dir)"
+
+# PROJECT_DIR: where .env and target/ live (current working directory)
+PROJECT_DIR="$(pwd)"
+
+# ── Load shared utilities & sub-commands ──────────────────────────────────
+
+source "${REALTIME_HOME}/scripts/setup_utils.sh"
+source "${REALTIME_HOME}/scripts/cmd_onboard.sh"
+source "${REALTIME_HOME}/scripts/cmd_start.sh"
+source "${REALTIME_HOME}/scripts/cmd_doctor.sh"
+
+# ── Init .env path (in project dir, not install dir) ─────────────────────
+
+ENV_FILE="${PROJECT_DIR}/.env"
+init_env_file "$ENV_FILE"
+
+# Export for sub-commands
+export REALTIME_HOME PROJECT_DIR
+
+# ── Sub-command dispatch ──────────────────────────────────────────────────
+
+cmd="${1:-help}"
+shift 2>/dev/null || true
+
+case "$cmd" in
+    onboard|setup)
+        cmd_onboard "$@"
+        ;;
+
+    start|run)
+        cmd_start "$@"
+        ;;
+
+    doctor|check)
+        cmd_doctor "$@"
+        ;;
+
+    install)
+        target="/usr/local/bin/realtime"
+        src="${REALTIME_HOME}/realtime"
+        if [[ -L "$target" || -f "$target" ]]; then
+            echo "  $target already exists."
+            echo "  Remove it first: sudo rm $target"
+            exit 1
+        fi
+        echo "  Creating symlink: $target -> $src"
+        sudo ln -s "$src" "$target"
+        echo "  Done! You can now run 'realtime' from anywhere."
+        ;;
+
+    uninstall)
+        target="/usr/local/bin/realtime"
+        if [[ -L "$target" ]]; then
+            echo "  Removing symlink: $target"
+            sudo rm "$target"
+            echo "  Done!"
+        else
+            echo "  $target not found or is not a symlink."
+        fi
+        ;;
+
+    version|-v|--version)
+        echo "realtime v${CURRENT_VERSION}"
+        ;;
+
+    help|-h|--help)
+        echo ""
+        echo "  SquadyAI Realtime API — CLI"
+        echo ""
+        echo "  Usage: realtime <command> [options]"
+        echo ""
+        echo "  Commands:"
+        echo "    onboard    Interactive setup wizard (alias: setup)"
+        echo "    start      Start the service (alias: run)"
+        echo "    doctor     Diagnose configuration (alias: check)"
+        echo "    install    Add 'realtime' to PATH (symlink to /usr/local/bin)"
+        echo "    uninstall  Remove 'realtime' from PATH"
+        echo "    version    Show version"
+        echo "    help       Show this help"
+        echo ""
+        echo "  Onboard options:"
+        echo "    --step N      Run only step N (1-4)"
+        echo "    --force       Force full reconfiguration"
+        echo "    --lang zh/en  Set UI language"
+        echo ""
+        echo "  Start options:"
+        echo "    --reconfigure  Run onboard before starting"
+        echo ""
+        echo "  Doctor options:"
+        echo "    --lang zh/en  Set UI language"
+        echo ""
+        echo "  Quick start:"
+        echo "    curl -fsSL https://raw.githubusercontent.com/SquadyAI/RealtimeAPI/main/server/install.sh | bash"
+        echo "    cd your-project && realtime onboard"
+        echo ""
+        ;;
+
+    *)
+        echo "  Unknown command: ${cmd}"
+        echo "  Run: realtime help"
+        exit 1
+        ;;
+esac

@@ -1,0 +1,137 @@
+.panel {
+    position: fixed;
+    top: 80px;
+    left: 20px;
+    width: 320px;
+    max-height: calc(100vh - 100px);
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+
+    h3 {
+        margin: 0 0 16px 0;
+        font-size: 18px;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+}
+
+// 手机端适配 - 平板
+@media (max-width: 768px) and (min-width: 481px) {
+    .panel {
+        top: auto;
+        bottom: 20px;
+        left: 10px;
+        right: 10px;
+        width: auto;
+        max-height: 40vh;
+        padding: 12px;
+
+        h3 {
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+    }
+
+    .list {
+        max-height: calc(40vh - 60px);
+    }
+}
+
+// 手机端适配 - 便签条状组件
+@media (max-width: 480px) {
+    .panel {
+        top: auto;
+        bottom: 70px; // 避开说话按钮
+        left: 10px;
+        right: 10px;
+        width: auto;
+        max-height: 120px; // 条状高度
+        padding: 8px 12px;
+        border-radius: 20px; // 药丸形状
+        border-bottom: 2px solid rgba(0, 122, 255, 0.3);
+
+        h3 {
+            font-size: 12px;
+            margin-bottom: 6px;
+            gap: 4px;
+        }
+    }
+
+    .list {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 8px;
+        max-height: none;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 4px;
+        padding-right: 0;
+
+        &::-webkit-scrollbar {
+            height: 3px;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+    }
+
+    .emptyState {
+        flex-direction: row;
+        padding: 8px;
+        gap: 8px;
+
+        span {
+            font-size: 24px;
+        }
+
+        p {
+            font-size: 11px;
+            margin: 0;
+        }
+
+        p:last-child {
+            display: none; // 隐藏副标题
+        }
+    }
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    padding-right: 8px;
+
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 4px;
+    }
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    text-align: center;
+    color: #666;
+
+    p {
+        margin: 8px 0 0 0;
+        font-size: 14px;
+    }
+}

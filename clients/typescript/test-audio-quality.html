@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音频质量修复效果测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-pass { background-color: #4CAF50; }
+        .status-fail { background-color: #F44336; }
+        .status-pending { background-color: #FF9800; }
+        .log-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .diagnostic-item {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+        .highlight {
+            background: yellow;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔊 音频质量修复效果测试报告</h1>
+    
+    <div class="test-section">
+        <h2>📋 修复内容回顾</h2>
+        <ul>
+            <li>✅ 实现了正确的output_audio_buffer信令处理机制</li>
+            <li>✅ App.tsx修复：正确的AudioPlayer实例管理</li>
+            <li>✅ CombinedConnectionManager.ts修复：混合协议信令支持</li>
+            <li>✅ AudioPlayer.ts优化：增强的stopPlayback()方法</li>
+            <li>✅ 添加了详细的诊断日志系统</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🎯 测试目标</h2>
+        <p>验证基于正确信令机制的修复是否解决了音频沙哑问题，确保：</p>
+        <ul>
+            <li>音频播放清晰流畅，不再沙哑</li>
+            <li>打断功能正常工作，基于正确的信令机制</li>
+            <li>AudioPlayer实例正确管理，避免资源冲突</li>
+            <li>信令处理流程完整且正确</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 问题源头分析</h2>
+        <div class="diagnostic-item">
+            <h3>最可能的问题源头（已添加诊断日志验证）：</h3>
+            <ol>
+                <li><span class="highlight">AudioWorklet队列管理问题</span> - 多个音频流混叠导致沙哑</li>
+                <li><span class="highlight">信令处理时序问题</span> - output_audio_buffer信令处理延迟</li>
+            </ol>
+        </div>
+        <div class="diagnostic-item">
+            <h3>其他潜在问题源头：</h3>
+            <ul>
+                <li>AudioContext时序同步问题</li>
+                <li>PCM数据字节序问题</li>
+                <li>资源清理不彻底</li>
+                <li>音频缓冲区溢出</li>
+                <li>Opus解码参数不匹配</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 测试步骤</h2>
+        
+        <h3>1. 正常对话测试</h3>
+        <p><span class="status-indicator status-pending"></span>开始语音对话，让AI正常说话，仔细聆听音频质量</p>
+        <button class="test-button" onclick="startNormalTest()">开始正常对话测试</button>
+        <div id="normalTestResult"></div>
+        
+        <h3>2. 打断功能测试</h3>
+        <p><span class="status-indicator status-pending"></span>在AI说话过程中说"好了不要说了"，确认音频能立即停止</p>
+        <button class="test-button" onclick="startInterruptTest()">开始打断功能测试</button>
+        <div id="interruptTestResult"></div>
+        
+        <h3>3. 信令流程验证</h3>
+        <p><span class="status-indicator status-pending"></span>观察控制台日志，确认信令处理流程</p>
+        <button class="test-button" onclick="startSignalTest()">验证信令流程</button>
+        <div id="signalTestResult"></div>
+        
+        <h3>4. 资源管理验证</h3>
+        <p><span class="status-indicator status-pending"></span>确认AudioPlayer实例正确管理，无资源泄漏</p>
+        <button class="test-button" onclick="startResourceTest()">检查资源管理</button>
+        <div id="resourceTestResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 预期诊断日志</h2>
+        <div class="log-container" id="expectedLogs">
+            <div><span style="color: #4CAF50;">🟢 收到output_audio_buffer.started，准备新音频播放</span></div>
+            <div><span style="color: #4CAF50;">🟢 收到output_audio_buffer.stopped，停止当前音频播放</span></div>
+            <div><span style="color: #2196F3;">🔍 音频流诊断: {timestamp, dataSize, potentialOverlap}</span></div>
+            <div><span style="color: #2196F3;">🔍 音频质量诊断: {floatRange, potentialDistortion}</span></div>
+            <div><span style="color: #F44336;">🔴 停止播放前状态: ... → [AudioPlayer] 播放器已停止</span></div>
+            <div><span style="color: #FF9800;">🔍 音频流重叠检测: {potentialOverlap, action}</span></div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📈 实时测试日志</h2>
+        <div class="log-container" id="realTimeLogs">
+            <div>等待测试开始...</div>
+        </div>
+        <button class="test-button" onclick="clearLogs()">清空日志</button>
+    </div>
+
+    <script>
+        let testResults = {
+            normalTest: false,
+            interruptTest: false,
+            signalTest: false,
+            resourceTest: false
+        };
+
+        function addLog(message, type = 'info') {
+            const logsContainer = document.getElementById('realTimeLogs');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            
+            const colors = {
+                'info': '#d4d4d4',
+                'success': '#4CAF50',
+                'error': '#F44336',
+                'warning': '#FF9800',
+                'debug': '#2196F3'
+            };
+            
+            logEntry.style.color = colors[type] || colors.info;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('realTimeLogs').innerHTML = '<div>日志已清空...</div>';
+        }
+
+        function updateTestResult(testId, passed, details) {
+            const resultContainer = document.getElementById(testId + 'Result');
+            const statusClass = passed ? 'status-pass' : 'status-fail';
+            const statusText = passed ? '✅ 通过' : '❌ 失败';
+            
+            resultContainer.innerHTML = `
+                <div>
+                    <span class="status-indicator ${statusClass}"></span>
+                    ${statusText}: ${details}
+                </div>
+            `;
+            
+            testResults[testId] = passed;
+            updateOverallStatus();
+        }
+
+        function updateOverallStatus() {
+            const allPassed = Object.values(testResults).every(result => result === true);
+            const somePending = Object.values(testResults).some(result => result === false);
+            
+            if (allPassed) {
+                addLog('🎉 所有测试通过！音频质量修复成功！', 'success');
+            } else if (somePending) {
+                addLog('⏳ 部分测试待完成...', 'warning');
+            }
+        }
+
+        function startNormalTest() {
+            addLog('🎤 开始正常对话测试...', 'info');
+            addLog('📝 请在应用中开始语音对话，注意聆听音频质量', 'info');
+            addLog('🔍 重点关注以下诊断日志:', 'debug');
+            addLog('   - 🔍 音频流诊断 (检查重叠)', 'debug');
+            addLog('   - 🔍 音频质量诊断 (检查失真)', 'debug');
+            addLog('   - 🟢 output_audio_buffer.started/stopped 信令', 'debug');
+            
+            // 模拟测试结果
+            setTimeout(() => {
+                const passed = confirm('音频播放是否清晰流畅，不再沙哑？\n\n请检查控制台中的诊断日志。');
+                updateTestResult('normalTest', passed, passed ? '音频清晰流畅' : '仍有沙哑问题');
+                if (passed) {
+                    addLog('✅ 正常对话测试通过：音频质量良好', 'success');
+                } else {
+                    addLog('❌ 正常对话测试失败：仍有音频质量问题', 'error');
+                }
+            }, 1000);
+        }
+
+        function startInterruptTest() {
+            addLog('🛑 开始打断功能测试...', 'info');
+            addLog('📝 请在AI说话过程中说"好了不要说了"', 'info');
+            addLog('🔍 重点关注以下诊断日志:', 'debug');
+            addLog('   - 🔴 output_audio_buffer.stopped 信令处理', 'debug');
+            addLog('   - 🔴 AudioPlayer实例清理', 'debug');
+            addLog('   - 🔴 停止播放状态变化', 'debug');
+            
+            setTimeout(() => {
+                const passed = confirm('打断功能是否正常工作？\n\n音频是否能立即停止？\n是否看到正确的信令处理日志？');
+                updateTestResult('interruptTest', passed, passed ? '打断功能正常' : '打断功能异常');
+                if (passed) {
+                    addLog('✅ 打断功能测试通过：信令机制正确', 'success');
+                } else {
+                    addLog('❌ 打断功能测试失败：信令处理异常', 'error');
+                }
+            }, 1000);
+        }
+
+        function startSignalTest() {
+            addLog('📡 开始信令流程验证...', 'info');
+            addLog('🔍 请检查控制台中的信令处理日志:', 'debug');
+            addLog('   🟢 收到output_audio_buffer.started', 'debug');
+            addLog('   🟢 收到output_audio_buffer.stopped', 'debug');
+            addLog('   📤 信令事件已emit，等待App层处理', 'debug');
+            
+            setTimeout(() => {
+                const passed = confirm('是否看到正确的信令处理流程？\n\n包括：\n- 🟢 output_audio_buffer.started/stopped 信令\n- AudioPlayer实例创建和清理\n- 信令时序诊断信息');
+                updateTestResult('signalTest', passed, passed ? '信令流程正确' : '信令流程异常');
+                if (passed) {
+                    addLog('✅ 信令流程验证通过：处理机制正确', 'success');
+                } else {
+                    addLog('❌ 信令流程验证失败：处理机制异常', 'error');
+                }
+            }, 1000);
+        }
+
+        function startResourceTest() {
+            addLog('💾 开始资源管理验证...', 'info');
+            addLog('🔍 请检查以下资源管理指标:', 'debug');
+            addLog('   - AudioPlayer实例创建/销毁', 'debug');
+            addLog('   - AudioContext状态管理', 'debug');
+            addLog('   - AudioWorklet资源清理', 'debug');
+            addLog('   - 内存使用情况', 'debug');
+            
+            setTimeout(() => {
+                const passed = confirm('资源管理是否正确？\n\n包括：\n- 无AudioPlayer实例泄漏\n- AudioContext正确关闭\n- 无内存泄漏迹象');
+                updateTestResult('resourceTest', passed, passed ? '资源管理正确' : '资源管理异常');
+                if (passed) {
+                    addLog('✅ 资源管理验证通过：无泄漏问题', 'success');
+                } else {
+                    addLog('❌ 资源管理验证失败：存在泄漏问题', 'error');
+                }
+            }, 1000);
+        }
+
+        // 初始化
+        addLog('🔊 音频质量修复效果测试系统已启动', 'success');
+        addLog('📝 请按顺序执行各项测试，并观察控制台诊断日志', 'info');
+        addLog('🔍 重点关注：音频流重叠检测、音频质量诊断、信令时序', 'debug');
+    </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+# EditorConfig 配置文件
+# 确保团队成员使用不同编辑器时的格式化一致性
+# 更多信息: https://editorconfig.org/
+
+root = true
+
+# 所有文件的默认配置
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Rust 源文件配置
+[*.rs]
+indent_style = space
+indent_size = 4
+max_line_length = 120
+
+# TOML 配置文件
+[*.toml]
+indent_style = space
+indent_size = 2
+
+# YAML 配置文件
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# JSON 配置文件
+[*.json]
+indent_style = space
+indent_size = 2
+
+# Markdown 文件
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off
+
+# Shell 脚本
+[*.{sh,bash}]
+indent_style = space
+indent_size = 2
+
+# PowerShell 脚本
+[*.ps1]
+indent_style = space
+indent_size = 2
+
+# Docker 文件
+[Dockerfile*]
+indent_style = space
+indent_size = 2
+
+# Git 配置
+[.gitignore]
+indent_style = space
+indent_size = 2 

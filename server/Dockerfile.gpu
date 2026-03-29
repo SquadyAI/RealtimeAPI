@@ -1,0 +1,232 @@
+# =====================================
+# Realtime ASR - GPU (CUDA 12.8) Dockerfile
+# Multi-stage build optimized for caching and small runtime image
+# =====================================
+
+ARG RUST_VERSION=nightly
+ARG CUDA_VERSION=12.8
+
+# =====================================
+# Stage 1: Base build environment
+# =====================================
+FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu22.04 AS base
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=apt-cache \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked,id=apt-lib \
+    echo 'APT::Install-Recommends "false";' > /etc/apt/apt.conf.d/99norecommends && \
+    echo 'APT::Install-Suggests "false";' >> /etc/apt/apt.conf.d/99norecommends && \
+    echo 'APT::Get::Assume-Yes "true";' >> /etc/apt/apt.conf.d/99assumeyes && \
+    echo 'Dpkg::Use-Pty "0";' >> /etc/apt/apt.conf.d/99nopty && \
+    apt-get update && apt-get install -y \
+    build-essential \
+    pkg-config \
+    cmake \
+    curl \
+    wget \
+    git \
+    unzip \
+    libasound2-dev \
+    libpulse-dev \
+    libjack-jackd2-dev \
+    libssl-dev \
+    ca-certificates \
+    libprotobuf-dev \
+    protobuf-compiler && \
+    apt-get autoremove -y && \
+    apt-get autoclean
+
+ENV RUSTUP_HOME=/usr/local/rustup
+ENV CARGO_HOME=/usr/local/cargo
+ENV PATH=/usr/local/cargo/bin:${PATH}
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly --profile minimal
+
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
+ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
+ENV RUSTFLAGS="--cfg tokio_unstable"
+ENV TOKIO_CONSOLE="true"
+ENV RUST_LOG="debug"
+
+RUN mkdir -p /usr/local/cargo/registry && \
+    chmod 777 /usr/local/cargo/registry
+
+# =====================================
+# Stage 2: ONNX Runtime (GPU)
+# =====================================
+FROM base AS onnx-runtime
+
+ARG CUDA_VERSION
+ARG ONNX_VERSION=1.22.0
+
+RUN --mount=type=cache,target=/tmp/onnx-cache,id=onnx-cache \
+    ONNX_PACKAGE="onnxruntime-linux-x64-gpu-${ONNX_VERSION}" && \
+    ONNX_FILE="${ONNX_PACKAGE}.tgz" && \
+    if [ ! -f "/tmp/onnx-cache/${ONNX_FILE}" ]; then \
+      wget -q "https://github.com/microsoft/onnxruntime/releases/download/v${ONNX_VERSION}/${ONNX_FILE}" -O "/tmp/onnx-cache/${ONNX_FILE}"; \
+    fi && \
+    cd /tmp && cp "/tmp/onnx-cache/${ONNX_FILE}" . && \
+    tar -xzf "${ONNX_FILE}" && \
+    cp -r "${ONNX_PACKAGE}"/lib/* /usr/local/lib/ && \
+    cp -r "${ONNX_PACKAGE}"/include/* /usr/local/include/ && \
+    ldconfig && \
+    rm -rf /tmp/"${ONNX_PACKAGE}" /tmp/"${ONNX_FILE}"
+
+ENV ORT_LIB_LOCATION=/usr/local/lib
+ENV ORT_STRATEGY=system
+ENV CUDA_HOME=/usr/local/cuda
+ENV PATH=/usr/local/cuda/bin:${PATH}
+ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/local/cuda/lib64:${LD_LIBRARY_PATH:-}
+# 确保链接器能找到 onnxruntime（编译时链接）
+ENV LIBRARY_PATH=/usr/local/lib
+
+# =====================================
+# Stage 3: Cache Rust dependencies
+# =====================================
+FROM onnx-runtime AS deps-cache
+
+WORKDIR /usr/src/app
+
+COPY Cargo.toml Cargo.lock ./
+
+RUN mkdir -p src && \
+    echo "fn main() {}" > src/main.rs && \
+    echo 'pub fn dummy() {}' > src/lib.rs
+
+RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked,id=cargo-registry \
+    --mount=type=cache,target=/usr/local/cargo/git,sharing=locked,id=cargo-git \
+    --mount=type=cache,target=/usr/src/app/target,sharing=locked,id=cargo-target \
+    cargo build --release && \
+    mkdir -p /deps/target/release && \
+    if [ -d "target/release/deps" ]; then cp -r target/release/deps /deps/target/release/; fi && \
+    if [ -d "target/release/build" ]; then cp -r target/release/build /deps/target/release/; fi && \
+    find target/release -maxdepth 1 -name "*.rlib" -exec cp {} /deps/target/release/ \; 2>/dev/null || true && \
+    find target/release -maxdepth 1 -name "lib*.so" -exec cp {} /deps/target/release/ \; 2>/dev/null || true && \
+    find target/release -maxdepth 1 -name "*.d" -exec cp {} /deps/target/release/ \; 2>/dev/null || true
+
+RUN rm -rf src
+
+# =====================================
+# Stage 4: Build application
+# =====================================
+FROM deps-cache AS builder
+
+RUN mkdir -p target/release
+COPY --from=deps-cache /deps/target/release/ ./target/release/
+
+COPY src/ ./src/
+
+# 复制 MMDB 文件到构建阶段
+COPY src/GeoIP2-City.mmdb ./GeoIP2-City.mmdb
+
+ENV CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
+ENV CARGO_PROFILE_RELEASE_LTO=thin
+ENV CARGO_PROFILE_RELEASE_PANIC=abort
+
+RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked,id=cargo-registry \
+    --mount=type=cache,target=/usr/local/cargo/git,sharing=locked,id=cargo-git \
+    --mount=type=cache,target=/usr/src/app/target,sharing=locked,id=cargo-target \
+    cargo build --release && \
+    cp target/release/realtime /usr/local/bin/realtime && \
+    ls -la /usr/local/bin/realtime && \
+    ldd /usr/local/bin/realtime
+
+# =====================================
+# Stage 5: Runtime base image
+# =====================================
+FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu22.04 AS runtime-base
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=apt-cache \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked,id=apt-lib \
+    echo 'APT::Install-Recommends "false";' > /etc/apt/apt.conf.d/99norecommends && \
+    echo 'APT::Install-Suggests "false";' >> /etc/apt/apt.conf.d/99norecommends && \
+    echo 'APT::Get::Assume-Yes "true";' >> /etc/apt/apt.conf.d/99assumeyes && \
+    echo 'Dpkg::Use-Pty "0";' >> /etc/apt/apt.conf.d/99nopty && \
+    apt-get update && apt-get install -y \
+    libssl3 \
+    ca-certificates \
+    libasound2 \
+    libpulse0 \
+    curl \
+    htop && \
+    apt-get autoremove -y && \
+    apt-get autoclean
+
+RUN groupadd -r appuser && useradd -r -g appuser -s /bin/false appuser
+
+# =====================================
+# Stage 6: Final runtime image (GPU)
+# =====================================
+FROM runtime-base AS runtime
+
+COPY --from=onnx-runtime /usr/local/lib/libonnxruntime*.so* /usr/local/lib/
+RUN ldconfig
+
+COPY --from=builder /usr/local/bin/realtime /usr/local/bin/realtime
+RUN chmod +x /usr/local/bin/realtime
+
+# 复制 GeoIP2 数据库文件到容器中
+# 从构建阶段复制，确保文件可用
+COPY --from=builder /usr/src/app/GeoIP2-City.mmdb /app/data/GeoIP2-City.mmdb
+# 复制 GeoNames 城市数据（用于世界时钟离线解析）
+COPY data/cities500.txt /app/data/cities500.txt
+
+RUN mkdir -p /app/{config,logs,recordings,wav_chunks,data} && \
+    chown -R appuser:appuser /app
+
+WORKDIR /app
+
+ENV RUST_LOG=info
+ENV RUST_BACKTRACE=1
+ENV BIND_ADDR=0.0.0.0:8080
+ENV ORT_LIB_LOCATION=/usr/local/lib
+ENV TOKIO_CONSOLE=true
+ENV RUSTFLAGS="--cfg tokio_unstable"
+# 设置默认的 GeoIP2 数据库路径
+ENV GEOIP_MMDB_PATH=/app/data/GeoIP2-City.mmdb
+ENV GEONAMES_CITIES_FILE=/app/data/cities500.txt
+ENV CUDA_HOME=/usr/local/cuda
+ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/local/cuda/lib64:${LD_LIBRARY_PATH:-}
+
+EXPOSE 8080 5004 16992
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+USER appuser
+
+CMD ["/usr/local/bin/realtime"]
+
+# =====================================
+# Stage 7: Development image (GPU)
+# =====================================
+FROM onnx-runtime AS development
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
+    echo 'APT::Install-Recommends "false";' > /etc/apt/apt.conf.d/99norecommends && \
+    echo 'APT::Install-Suggests "false";' >> /etc/apt/apt.conf.d/99norecommends && \
+    echo 'APT::Get::Assume-Yes "true";' >> /etc/apt/apt.conf.d/99assumeyes && \
+    echo 'Dpkg::Use-Pty "0";' >> /etc/apt/apt.conf.d/99nopty && \
+    apt-get update && apt-get install -y \
+    git \
+    vim \
+    gdb \
+    strace && \
+    apt-get autoremove -y && \
+    apt-get autoclean && \
+    RUSTFLAGS="" cargo install cargo-watch cargo-audit cargo-deny
+
+WORKDIR /usr/src/app
+
+COPY Cargo.toml Cargo.lock ./
+
+EXPOSE 8080 5004 16992
+
+ENV RUST_LOG=debug
+ENV RUST_BACKTRACE=full
+
+CMD ["cargo", "watch", "-x", "run"]
+
+LABEL maintainer="Realtime ASR Team"
+LABEL description="Realtime ASR - GPU runtime"
+LABEL version="0.1.0"

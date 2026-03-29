@@ -1,0 +1,117 @@
+services:
+  # 生产环境版本
+  realtime-asr:
+    image: realtime-api:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+      target: runtime
+    container_name: realtime-asr-prod
+    ports:
+      - "8081:8080"   # WebSocket/HTTP API端口
+      - "16992:16992" # tokio-console端口
+    environment:
+      - RUST_LOG=${RUST_LOG:-warn}
+      - RUST_BACKTRACE=${RUST_BACKTRACE:-1}
+      - BIND_ADDR=${BIND_ADDR:-0.0.0.0:8080}
+      - MAX_CONCURRENT_SESSIONS=${MAX_CONCURRENT_SESSIONS:-100}
+      - LLM_SKIP_CERT_VERIFICATION=${LLM_SKIP_CERT_VERIFICATION:-false}
+      - TTS_MAX_SESSIONS=${TTS_MAX_SESSIONS:-100}
+      - WS_PATH=${WS_PATH:-/ws}
+      - WS_MESSAGE_TIMEOUT=${WS_MESSAGE_TIMEOUT:-5000}
+      - WS_MAX_RETRIES=${WS_MAX_RETRIES:-3}
+      - WS_ENABLE_COMPRESSION=${WS_ENABLE_COMPRESSION:-true}
+      - SEARXNG_BASE_URL=${SEARXNG_BASE_URL:-http://localhost:8787}
+      - SEARXNG_TIMEOUT_MS=${SEARXNG_TIMEOUT_MS:-5000}
+      - SEARXNG_MAX_CONCURRENT_REQUESTS=${SEARXNG_MAX_CONCURRENT_REQUESTS:-200}
+      - SEARXNG_ENABLE_CACHE=${SEARXNG_ENABLE_CACHE:-true}
+      - SEARXNG_CACHE_TTL_SECONDS=${SEARXNG_CACHE_TTL_SECONDS:-300}
+      - SEARXNG_ENABLE_STREAMING=${SEARXNG_ENABLE_STREAMING:-true}
+      - SEARXNG_DEFAULT_ENGINES=${SEARXNG_DEFAULT_ENGINES:-brave,duckduckgo}
+      - SEARXNG_DEFAULT_LANGUAGE=${SEARXNG_DEFAULT_LANGUAGE:-zh-CN}
+      - SEARXNG_SAFE_SEARCH=${SEARXNG_SAFE_SEARCH:-0}
+      - SEARXNG_MAX_RESULTS=${SEARXNG_MAX_RESULTS:-20}
+      - SEARXNG_ENABLE_AUTOCOMPLETE=${SEARXNG_ENABLE_AUTOCOMPLETE:-true}
+      - SEARXNG_AUTOCOMPLETE_SERVICE=${SEARXNG_AUTOCOMPLETE_SERVICE:-brave}
+      - ENABLE_TTS=${ENABLE_TTS:-true}
+      - GEOIP_MMDB_PATH=${GEOIP_MMDB_PATH:-/app/data/GeoIP2-City.mmdb}
+    restart: unless-stopped
+  # realtime-asr-gpu:
+  #   image: realtime-api:latest-gpu
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.gpu
+  #     target: runtime
+  #   container_name: realtime-asr-gpu
+  #   ports:
+  #     - "8082:8080" # WebSocket/HTTP API端口 (避免与CPU版本冲突)
+  #     - "16993:16992" # tokio-console端口
+  #   volumes:
+  #     - ./models:/app/models
+  #   environment:
+  #     # 基础配置
+  #     - RUST_LOG=${RUST_LOG:-info}
+  #     - RUST_BACKTRACE=${RUST_BACKTRACE:-1}
+  #     - BIND_ADDR=${BIND_ADDR:-0.0.0.0:8080}
+  #     - MAX_CONCURRENT_SESSIONS=${MAX_CONCURRENT_SESSIONS:-100}
+  #     - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+  #     - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
+  #     - NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:-compute,utility}
+
+  #     #     # LLM 配置
+  #     #     - LLM_API_KEY=${LLM_API_KEY}
+  #     #     - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
+  #     #     - LLM_MODEL=${LLM_MODEL:-gpt-3.5-turbo}
+  #     #     - LLM_TIMEOUT_SECS=${LLM_TIMEOUT_SECS:-10}
+  #     #     - LLM_SKIP_CERT_VERIFICATION=${LLM_SKIP_CERT_VERIFICATION:-true}
+  #     #     - LLM_MAX_CONNECTIONS_PER_HOST=${LLM_MAX_CONNECTIONS_PER_HOST:-10}
+  #     #     - LLM_CONNECTION_TIMEOUT_SECS=${LLM_CONNECTION_TIMEOUT_SECS:-10}
+
+  #     #     # TTS 配置
+  #     #     - MINIMAX_API_KEY=${MINIMAX_API_KEY}
+  #     #     - FISH_SPEECH_API_KEY=${FISH_SPEECH_API_KEY}
+  #     #     - TTS_MAX_CONCURRENT=${TTS_MAX_CONCURRENT:-3}
+  #     #     - TTS_BUFFER_SIZE=${TTS_BUFFER_SIZE:-8192}
+  #     #     - TTS_MAX_CHUNK_LENGTH=${TTS_MAX_CHUNK_LENGTH:-15}
+  #     #     - TTS_MIN_CHUNK_LENGTH=${TTS_MIN_CHUNK_LENGTH:-3}
+  #     #     - TTS_ENABLE_REAL_TIME=${TTS_ENABLE_REAL_TIME:-true}
+
+  #     #     # VAD 配置（GPU启用）
+  #     #     - VAD_THRESHOLD=${VAD_THRESHOLD:-0.5}
+  #     #     - VAD_MIN_SILENCE_MS=${VAD_MIN_SILENCE_MS:-350}
+  #     #     - VAD_MIN_SPEECH_MS=${VAD_MIN_SPEECH_MS:-160}
+  #     #     - VAD_SPEECH_PAD_SAMPLES=${VAD_SPEECH_PAD_SAMPLES:-2560}
+  #     #     - VAD_MAX_INSTANCES=${VAD_MAX_INSTANCES:-200}
+  #     #     - VAD_INITIAL_POOL_SIZE=${VAD_INITIAL_POOL_SIZE:-8}
+  #     #     - VAD_GPU_ENABLED=${VAD_GPU_ENABLED:-true}
+  #     #     - VAD_GPU_DEVICE_ID=${VAD_GPU_DEVICE_ID:-0}
+
+  #     #     # 音频配置
+  #     #     - SAMPLE_RATE=${SAMPLE_RATE:-16000}
+  #     #     - CHUNK_SIZE=${CHUNK_SIZE:-1024}
+  #     #     - BUFFER_SIZE=${BUFFER_SIZE:-8192}
+
+  #     #     # 可选服务
+  #     #     - ENABLE_TTS=${ENABLE_TTS:-true}
+  #     # VAD 配置（GPU启用）
+  #     - VAD_GPU_ENABLED=${VAD_GPU_ENABLED:-true}
+  #     - VAD_GPU_DEVICE_ID=${VAD_GPU_DEVICE_ID:-0}
+
+  #     # 可选服务
+  #     - ENABLE_TTS=${ENABLE_TTS:-true}
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1
+  #             capabilities: [ gpu ]
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+  #   profiles:
+  #     - gpu

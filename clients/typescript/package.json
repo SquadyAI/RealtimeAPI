@@ -1,0 +1,43 @@
+{
+  "name": "react",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:http": "vite --config vite.config.http.ts",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@evan/opus": "^1.0.3",
+    "@evan/wasm": "^0.0.95",
+    "@ricky0123/vad-web": "^0.0.30",
+    "@steelbrain/media-ingest-audio": "^1.2.0",
+    "@steelbrain/media-speech-detection-web": "^1.2.0",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "jotai": "^2.16.1",
+    "react": "18.3.1",
+    "react-audio-visualize": "^1.2.0",
+    "react-dom": "18.3.1",
+    "react-markdown": "^10.1.0",
+    "reset-css": "^5.0.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@vitejs/plugin-react": "^5.1.2",
+    "eslint": "^9.39.2",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.26",
+    "globals": "^16.5.0",
+    "sass": "^1.97.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.50.1",
+    "vite": "^7.3.0",
+    "vite-plugin-pwa": "^1.2.0",
+    "vite-plugin-static-copy": "^4.0.0"
+  },
+  "packageManager": "yarn@4.9.4"
+}

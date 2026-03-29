@@ -1,0 +1,163 @@
+# ================================
+# Docker构建忽略文件
+# 优化构建过程，减少构建上下文大小
+# ================================
+
+# Rust构建产物
+target/
+*.pdb
+
+# Cargo锁文件（已在Dockerfile中处理）
+# Cargo.lock
+
+# 开发和调试文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git相关
+.git/
+.gitignore
+.gitmodules
+
+# 文档和说明文件
+*.md
+docs/
+doc/
+README*
+CHANGELOG*
+LICENSE*
+
+# 保留volcEngine-tts本地依赖
+!volcEngine-tts/
+
+# 临时文件和日志
+*.log
+*.tmp
+logs/
+temp/
+tmp/
+
+# 录音和音频文件（大文件，通常通过挂载获取）
+recordings/
+wav_chunks/
+*.wav
+*.mp3
+*.flac
+*.ogg
+
+# 测试文件
+tests/
+test_data/
+*.test
+
+# 配置和秘密文件（运行时挂载）
+.env
+.env.*
+secrets/
+certs/
+
+# 依赖缓存（在Dockerfile中重新构建）
+node_modules/
+.npm/
+.cargo/registry/
+.cargo/git/
+
+# IDE和编辑器配置
+.vscode/
+.idea/
+*.sublime-*
+*.vim
+
+# 操作系统生成的文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+
+# Python相关（如果有Python脚本）
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 备份文件
+*.bak
+*.backup
+*.old
+
+# Docker相关
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# 监控配置文件（运行时挂载）
+monitoring/
+
+# 大型模型文件（通过挂载获取，除非需要打包到镜像中）
+# 注释掉下面这行如果你想将模型文件打包到镜像中
+# models/
+
+# 构建脚本和CI/CD文件
+.github/
+.gitlab-ci.yml
+.travis.yml
+circle.yml
+appveyor.yml
+build.sh
+deploy.sh
+
+# 性能分析文件
+*.prof
+perf.data*
+*.svg
+
+# 编译器和工具链文件
+*.o
+*.a
+*.so
+*.dll
+*.exe
+
+# 特定于项目的忽略文件
+ctc_logits_dump.bin
+New\ folder/
+
+# 开发工具配置
+.cargo/config
+.cargo/config.toml
+
+# 本地开发环境文件
+.local/
+.cache/

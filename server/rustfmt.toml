@@ -1,0 +1,47 @@
+# Rust 代码格式化配置文件
+# 基于项目现有代码风格（如 llm.rs）制定的统一格式化规则
+
+# 基本配置
+max_width = 200                 # 每行最大字符数（适当放宽以容纳复杂表达式）
+hard_tabs = false              # 使用空格而不是制表符
+tab_spaces = 4                 # 制表符宽度为4个空格
+edition = "2024"               # Rust版本
+
+# 导入配置（仅使用稳定特性）
+reorder_imports = true         # 重新排序导入
+reorder_modules = true         # 重新排序模块
+
+# 函数和方法配置
+fn_params_layout = "Tall"      # 函数参数布局：长参数列表垂直排列
+fn_call_width = 80            # 函数调用宽度
+
+# 链式调用配置
+chain_width = 80              # 链式调用宽度
+
+# 数组和元组配置
+array_width = 80              # 数组宽度
+struct_lit_width = 80         # 结构体字面量宽度
+
+# 控制流配置
+single_line_if_else_max_width = 80  # 单行 if-else 最大宽度
+
+# 换行配置
+newline_style = "Unix"        # 使用 Unix 风格换行符
+
+# 尾随逗号配置
+match_block_trailing_comma = true  # match 块尾随逗号
+
+# 字段初始化简写
+use_field_init_shorthand = true    # 使用字段初始化简写
+
+# 小型启发式配置
+use_small_heuristics = "Default"   # 使用默认的小型启发式方法
+
+# Try操作符简写
+use_try_shorthand = false          # 保持 ? 操作符原样
+
+# Derive属性合并
+merge_derives = true               # 合并 derive 属性
+
+# 其他配置
+remove_nested_parens = true        # 移除不必要的嵌套括号

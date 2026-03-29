@@ -1,0 +1,56 @@
+# 速率控制配置文件
+
+# 全局速率限制配置
+# 控制所有客户端的总请求速率
+global_rate_limit:
+  # 令牌桶最大容量
+  capacity: 100
+
+  # 令牌补充速率（每秒补充的令牌数）
+  refill_rate: 10.0
+
+# 客户端速率限制配置
+# 控制单个客户端的请求速率
+client_rate_limit:
+  # 令牌桶最大容量
+  capacity: 10
+
+  # 令牌补充速率（每秒补充的令牌数）
+  refill_rate: 1.0
+
+# 错误统计配置
+error_statistics:
+  # 是否启用错误统计功能
+  enabled: true
+
+  # 最大错误记录数，防止内存溢出
+  max_records: 10000
+
+  # 是否记录详细的上下文信息
+  record_context: true
+
+# 其他可选配置
+# 超时时间（秒），如果需要的话
+# timeout: 30
+
+# 是否启用速率限制
+# enable_rate_limiting: true
+
+# 报告生成配置
+reporting:
+  # 是否生成详细报告
+  generate_detailed_report: true
+  # 是否生成CSV格式的延迟数据
+  generate_csv: true
+  # 是否生成图表（需要额外依赖）
+  generate_charts: true
+  # 图表格式（png, svg）
+  chart_formats: ["png", "svg"]
+  # 输出格式
+  output_formats: ["json", "txt", "html", "csv"]
+  # 是否使用模板
+  use_template: false
+  # 汇总报告模板路径
+  summary_template: "report_templates/summary_template.txt"
+  # HTML报告模板路径
+  html_template: "report_templates/html_template.html"

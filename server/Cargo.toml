@@ -1,0 +1,187 @@
+[package]
+name = "realtime"
+version = "0.1.0"
+edition = "2024"
+authors = ["Tiantian Zhan and SquadyAI"]
+description = "Open-source real-time voice AI platform with modular ASR, LLM, and TTS pipelines"
+repository = "https://github.com/SquadyAI/RealtimeAPI"
+license = "Apache-2.0"
+readme = "README.md"
+keywords = ["realtime", "voice-ai", "asr", "tts", "llm"]
+categories = ["multimedia::audio", "web-programming::websocket"]
+
+[dependencies]
+# 核心异步运行时
+tokio = { version = "1.46.1", features = ["full", "tracing"] }
+
+# Prometheus监控
+prometheus = "0.14.0"
+
+# 日志和追踪
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt", "json"] }
+console-subscriber = "0.5.0"  # tokio-console support - 最新版本
+
+# 序列化和配置
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+json5 = "0.4.1"
+
+# 错误处理
+anyhow = "1.0.98"
+thiserror = "2.0.12"
+
+# 数据库 ORM
+sqlx = { version = "0.8.6", features = ["runtime-tokio-rustls", "postgres", "json", "uuid", "chrono"] }
+
+# 环境配置
+dotenv = "0.15.0"
+
+# 异步工具
+async-trait = "0.1"
+async-stream = "0.3.6"
+futures = { version = "0.3.31", features = ["std"] }
+futures-util = { version = "0.3.31", features = ["std", "sink"] }
+regex = "1.10.5"
+urlencoding = "2.1"
+
+# Base64 编码
+base64 = "0.22.1"
+
+# Silero VAD 依赖
+ort = { version = "=2.0.0-rc.10", features = ["ndarray", "download-binaries", "copy-dylibs"] } # ONNX Runtime binding for Rust
+ndarray = { version = "0.16.1", features = ["rayon"] }
+rayon = "1.10.0"
+reqwest = { version = "0.12.20", features = ["json", "stream", "rustls-tls"] }
+qdrant-client = { version = "1.15.0", default-features = false, features = ["reqwest"] }
+num-complex = "0.4"
+num-traits = "0.2"
+
+# HTTP/WebSocket 服务器 (基于actix-web)
+actix-web = "4.5.1"
+actix-ws = "0.3.0"
+actix-cors = "0.7.0"
+actix-files = "0.6"
+# Swagger/OpenAPI 支持
+utoipa = { version = "5.4.0", features = ["actix_extras", "chrono", "uuid"] }
+http = "1.0"  # HTTP types for HeaderValue
+tokio-tungstenite = { version = "0.27.0", features = ["rustls-tls-webpki-roots"] }
+sha1 = "0.10"
+sha2 = "0.10"
+md-5 = "0.10"
+hmac = "0.12"
+
+# 并发和同步
+crossbeam = "0.8"
+parking_lot = "0.12"
+dashmap = "6.1"
+
+# 高性能哈希 (问题2: HashMap性能优化)
+rustc-hash = "2.1.1"
+
+# 时间处理
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+
+# 配置管理
+config = "0.15.13"
+
+# 系统监控 (暂时未使用)
+kitoken = "0.10.1"
+kaldi-fbank-rust-kautism = "0.1.0"
+uuid = { version = "1.17.0", features = ["v4", "serde"] }
+nanoid = "0.4.0"
+# bytemuck = { version = "1.23.1", features = ["derive"] }  # 暂时未使用
+bytes = "1.5"
+url = "2.5"
+hex = "0.4"
+once_cell = "1.19"
+maxminddb = "0.26.0"
+# Emoji 处理
+emojis = "0.6"
+# SIMD 加速依赖 (暂时未使用)
+# wide = "0.7"
+# simdeez = "1.0"
+unicode-segmentation = "1.12"
+# WAV文件处理
+hound = "3.5.1"
+# tokio-stream = "0.1"                 # 异步流处理 (暂时未使用)
+opus =  { git = "https://github.com/SpaceManiac/opus-rs.git" }
+lazy_static = "1.5.0"
+byteorder = "1.5.0"
+
+# 音频处理和mel特征提取
+rustfft = "6.2"
+
+# 繁简转换
+zhconv = "0.3"
+
+# MP3 解码 (Edge TTS)
+minimp3 = "0.5"
+# HTML 转义 (Edge TTS SSML)
+html-escape = "0.2"
+lingua = "1.7.2"
+mimalloc = "0.1.48"
+realfft = "3.3"
+
+# Windows系统信息 (仅在Windows平台)
+[target.'cfg(target_os = "windows")'.dependencies]
+winapi = { version = "0.3", features = ["psapi", "processthreadsapi"] }
+
+# 特征标志
+[features]
+default = ["binary-audio"]
+
+# 音频传输格式选择
+binary-audio = []  # 使用二进制格式传输音频 (默认，性能更好)
+text-audio = []    # 使用JSON文本格式传输音频 (兼容性更好)
+
+# 开发依赖
+[dev-dependencies]
+criterion = { version = "0.7.0", features = ["async_tokio"] }
+cpal = "0.16.0"
+tempfile = "3.0"
+pretty_assertions = "1.0"
+ctrlc = "3.4.7"
+rodio = "0.21.1"
+rand = "0.9.2"
+
+# 性能优化配置
+[profile.release]
+opt-level = "z"
+codegen-units = 1
+lto = "thin"  # 禁用LTO以加快编译速度
+strip = "symbols"  # 移除符号信息
+# panic = "abort"  # 注释掉：允许 panic 堆栈展开，便于生产环境调试
+# 如需极致优化可重新启用，但建议保留 unwind 以便排查问题
+
+# cargo-multivers 配置
+[package.metadata.multivers.x86_64]
+cpus = ["x86-64", "x86-64-v2", "x86-64-v3", "x86-64-v4"]
+
+[profile.dev]
+opt-level = 0  # 轻微优化，平衡编译速度和性能
+debug = true
+incremental = true
+codegen-units = 16  # 增加并行编译单元
+
+# 二进制目标
+[[bin]]
+name = "realtime"
+path = "src/main.rs"
+
+[[bench]]
+name = "vad_bench"
+harness = false
+
+[[bench]]
+name = "text_splitter_bench"
+harness = false
+
+[[bench]]
+name = "paced_sender_bench"
+harness = false
+
+[[bench]]
+name = "protocol_bench"
+harness = false

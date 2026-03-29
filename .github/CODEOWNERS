@@ -1,0 +1,21 @@
+# Default owners for the entire repository
+* @TIANTIAN-ZHAN
+
+# Core pipeline
+/src/rpc/ @TIANTIAN-ZHAN
+/src/asr/ @TIANTIAN-ZHAN
+/src/llm/ @TIANTIAN-ZHAN
+/src/tts/ @TIANTIAN-ZHAN
+/src/vad/ @TIANTIAN-ZHAN
+
+# Agents
+/src/agents/ @TIANTIAN-ZHAN
+
+# Infrastructure
+/Dockerfile* @TIANTIAN-ZHAN
+/docker-compose* @TIANTIAN-ZHAN
+/.github/ @TIANTIAN-ZHAN
+
+# Documentation
+/docs/ @TIANTIAN-ZHAN
+/README.md @TIANTIAN-ZHAN

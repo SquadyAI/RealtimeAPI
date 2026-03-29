@@ -1,0 +1,135 @@
+# =============================================================================
+# Realtime API - 快速启动配置
+# =============================================================================
+# 使用方法：
+#   1. 复制 .env.example 为 .env 并填入 API Key
+#   2. docker-compose -f docker-compose.quickstart.yml up -d
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # 方式 1：使用外部 LLM API（如 OpenAI）
+  # ---------------------------------------------------------------------------
+  realtime-api:
+    image: ghcr.io/squadyai/realtimeapi:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    container_name: realtime-api
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=${RUST_LOG:-info}
+      - BIND_ADDR=0.0.0.0:8080
+      - MAX_CONCURRENT_SESSIONS=${MAX_CONCURRENT_SESSIONS:-10}
+      # LLM 配置（必需）
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_MODEL=${LLM_MODEL:-gpt-3.5-turbo}
+      # TTS 配置（可选）
+      - ENABLE_TTS=${ENABLE_TTS:-false}
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
+      # VAD 配置
+      - VAD_THRESHOLD=${VAD_THRESHOLD:-0.5}
+      - VAD_MIN_SILENCE_MS=${VAD_MIN_SILENCE_MS:-500}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - external-llm
+
+  # ---------------------------------------------------------------------------
+  # 方式 2：使用本地 Ollama（无需 API Key）
+  # ---------------------------------------------------------------------------
+  realtime-api-local:
+    image: ghcr.io/squadyai/realtimeapi:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    container_name: realtime-api-local
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=${RUST_LOG:-info}
+      - BIND_ADDR=0.0.0.0:8080
+      # 使用本地 Ollama
+      - LLM_BASE_URL=http://ollama:11434/v1
+      - LLM_API_KEY=ollama
+      - LLM_MODEL=qwen2.5:7b
+      # 禁用 TTS（快速启动）
+      - ENABLE_TTS=false
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - local-llm
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    profiles:
+      - local-llm
+
+  # Ollama 模型初始化（一次性任务）
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Pulling qwen2.5:7b model..."
+        ollama pull qwen2.5:7b
+        echo "Model ready!"
+    profiles:
+      - local-llm
+
+volumes:
+  ollama_data:
+
+# =============================================================================
+# 使用说明：
+# =============================================================================
+#
+# 方式 1：使用外部 LLM API（OpenAI 等）
+# -----------------------------------------
+# 1. 编辑 .env 文件，设置 LLM_API_KEY
+# 2. 启动服务：
+#    docker-compose -f docker-compose.quickstart.yml --profile external-llm up -d
+#
+# 方式 2：使用本地 Ollama（无需 API Key）
+# -----------------------------------------
+# 1. 启动服务（首次会下载模型，需要等待）：
+#    docker-compose -f docker-compose.quickstart.yml --profile local-llm up -d
+#
+# 2. 查看模型下载进度：
+#    docker logs -f ollama-init
+#
+# 测试服务：
+# -----------------------------------------
+# curl http://localhost:8080/health
+# python realtime_client.py --llm "你好"
+#
+# =============================================================================

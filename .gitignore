@@ -1,0 +1,92 @@
+# =============================================================================
+# Realtime API - Git Ignore Configuration
+# =============================================================================
+
+# Environment config (never commit real credentials)
+.env
+.env.*
+!.env.example
+*.env.local
+run_local.sh
+!run_local.sh.example
+run.ps1
+run*.ps1
+!run.ps1.example
+
+# Internal docs (not for public repo)
+docs/internal/
+
+# Rust build artifacts
+/server/target
+/target
+**/*.rs.bk
+
+# ONNX model files (large binaries — embedded models are tracked via include_bytes)
+*.onnx
+!src/vad/*.onnx
+!server/playground/assets/*.onnx
+!server/playground/assets/*.wasm
+
+# Audio and media files
+*.wav
+*.pcm
+*.mp3
+*.opus
+vad_recordings/
+
+# Logs and temp files
+*.log
+*.tmp
+log/
+logs/
+tmp/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+
+# IDE and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# System files
+.DS_Store
+Thumbs.db
+*.bak
+
+# Project specific
+.claude/
+
+# Sensitive data
+*.key
+*.pem
+*.p12
+*.pfx
+*.cert
+credentials*.json
+secrets*.json
+*.sqlite
+*.db
+
+# Binary data files
+*.mmdb
+*.xlsx
+*.xls
+*.jpg
+*.jpeg
+*.png
+!scripts/icon_transparent.png
+
+# Clients
+clients/typescript/node_modules/
+clients/typescript/dist/
+clients/typescript/.env
+clients/typescript/.env.*
+!clients/typescript/.env.example

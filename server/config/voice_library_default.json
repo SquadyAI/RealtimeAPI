@@ -1,0 +1,48 @@
+{
+  "_comment": "MiniMax 声音库默认配置 - 与 Docker 启动时的硬编码配置一致",
+  "_usage": "可通过 VOICE_LIBRARY_CONFIG_PATH 环境变量指定此文件路径来覆盖默认配置",
+  "keys": {
+    "default": "your_minimax_api_key_here",
+    "default1": "your_minimax_api_key_here",
+    "apikey": "apikey"
+  },
+  "speeds": {
+    "_comment": "语速配置: voice_id -> speed，取值范围 [0.5, 2]",
+    "Chinese (Mandarin)_Gentle_Senior": 1.1,
+    "Chinese (Mandarin)_Wise_Women": 1.1,
+    "ttv-voice-2026012217272626-tk9kPJcw": 1.14
+  },
+  "pitches": {
+    "_comment": "声调配置: voice_id -> pitch，取值范围 [-12, 12]",
+    "Chinese (Mandarin)_Gentle_Senior": -1,
+    "Chinese (Mandarin)_Wise_Women": 1,
+    "ttv-voice-2026012217272626-tk9kPJcw": 1
+  },
+  "models": {
+    "_comment": "模型配置: voice_id -> model，可选值: speech-2.6-hd, speech-2.6-turbo, speech-02-hd, speech-02-turbo, speech-01-hd, speech-01-turbo",
+    "Chinese (Mandarin)_Wise_Women": "speech-2.6-hd",
+    "ttv-voice-2026012217272626-tk9kPJcw": "speech-2.6-hd"
+  },
+  "emotions": {
+    "_comment": "情绪配置: voice_id -> emotion，可选值: happy, sad, angry, fearful, disgusted, surprised, calm, fluent, whisper"
+  },
+  "volumes": {
+    "_comment": "音量配置: voice_id -> vol，取值范围 (0, 10]",
+    "ttv-voice-2026012217272626-tk9kPJcw": 1.56
+  },
+  "zh_female_wanwanxiaohe_moon_bigtts": {
+    "default": "wanwanxiaohe_moon",
+    "default1": "wanwanxiaohe_moon"
+  },
+  "wanwanxiaohe_moon": {
+    "default": "wanwanxiaohe_moon",
+    "default1": "wanwanxiaohe_moon"
+  },
+  "Chinese (Mandarin)_Wise_Women": {
+    "default": "Chinese (Mandarin)_Wise_Women",
+    "default1": "Chinese (Mandarin)_Wise_Women"
+  },
+  "ttv-voice-2026012217272626-tk9kPJcw": {
+    "apikey": "ttv-voice-2026012217272626-tk9kPJcw"
+  }
+}
