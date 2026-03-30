@@ -90,3 +90,6 @@ clients/typescript/dist/
 clients/typescript/.env
 clients/typescript/.env.*
 !clients/typescript/.env.example
+
+# Playground build artifacts (viteStaticCopy side-effect)
+server/playground/assets/node_modules/
