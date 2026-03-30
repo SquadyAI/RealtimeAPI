@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-03-30
+
+### Fixed
+- PWA service worker no longer uses `clientsClaim()` on activation, preventing "Unsafe attempt to load URL from chrome-error://" errors after quickstart
+- Playground URL is now printed only after the server is confirmed running
+
 ### Added
 - Initial open source release
 - Real-time voice conversation support (ASR → LLM → TTS pipeline)

@@ -44,7 +44,7 @@ export default defineConfig({
       ],
     }),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,onnx}'],
         maximumFileSizeToCacheInBytes: 50 * 1024 * 1024, // 50MB，支持大文件如WASM和ONNX

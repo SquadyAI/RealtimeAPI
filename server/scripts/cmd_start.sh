@@ -116,21 +116,6 @@ cmd_start() {
     msg "  ${BOLD}Starting Realtime API...${NC}" \
         "  ${BOLD}启动 Realtime API...${NC}"
     echo ""
-    echo -e "  ${GREEN}${BOLD}  ★  Playground:  http://localhost:${PORT}${NC}"
-    echo ""
-    echo -e "  ┌──────────────────────────────────────────────┐"
-    echo -e "  │  WebSocket: ws://${BIND_ADDR}/ws             │"
-    echo -e "  │  Health:    http://${BIND_ADDR}/health       │"
-    echo -e "  │  Metrics:   http://${BIND_ADDR}/metrics      │"
-    echo -e "  │                                              │"
-    echo -e "  │  LLM:  ${LLM_MODEL}                         │"
-    if [[ "$ENABLE_TTS_VAL" == "true" ]]; then
-        echo -e "  │  TTS:  ${TTS_ENGINE_VAL}                     │"
-    else
-        echo -e "  │  TTS:  disabled                              │"
-    fi
-    echo -e "  └──────────────────────────────────────────────┘"
-    echo ""
 
     # Load .env and run
     set -a
@@ -170,6 +155,21 @@ cmd_start() {
     fi
 
     print_ok "$(msg 'Server is running!' '服务已启动！')"
+    echo ""
+    echo -e "  ${GREEN}${BOLD}  ★  Playground:  http://localhost:${PORT}${NC}"
+    echo ""
+    echo -e "  ┌──────────────────────────────────────────────┐"
+    echo -e "  │  WebSocket: ws://${BIND_ADDR}/ws             │"
+    echo -e "  │  Health:    http://${BIND_ADDR}/health       │"
+    echo -e "  │  Metrics:   http://${BIND_ADDR}/metrics      │"
+    echo -e "  │                                              │"
+    echo -e "  │  LLM:  ${LLM_MODEL}                         │"
+    if [[ "$ENABLE_TTS_VAL" == "true" ]]; then
+        echo -e "  │  TTS:  ${TTS_ENGINE_VAL}                     │"
+    else
+        echo -e "  │  TTS:  disabled                              │"
+    fi
+    echo -e "  └──────────────────────────────────────────────┘"
     echo ""
 
     # Block until server exits
