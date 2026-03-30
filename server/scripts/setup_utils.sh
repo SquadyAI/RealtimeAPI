@@ -577,7 +577,7 @@ has_cmd() {
 
 # ── Version Check ──────────────────────────────────────────────────────────
 
-CURRENT_VERSION="0.1.0"
+CURRENT_VERSION="1.0.0"
 
 check_update() {
     local repo="${1:-SquadyAI/RealtimeAPI}"
@@ -586,7 +586,7 @@ check_update() {
     fi
     local latest
     latest=$(curl -sf --max-time 5 "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null \
-        | grep '"tag_name"' | head -1 | sed 's/.*"v\?\([^"]*\)".*/\1/')
+        | grep '"tag_name"' | head -1 | sed -E 's/.*"v?([^"]*)".*/\1/')
     if [[ -z "$latest" ]]; then
         return 1
     fi
