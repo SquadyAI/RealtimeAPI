@@ -577,7 +577,7 @@ has_cmd() {
 
 # ── Version Check ──────────────────────────────────────────────────────────
 
-CURRENT_VERSION="1.0.1"
+CURRENT_VERSION="1.0.2"
 
 check_update() {
     local repo="${1:-SquadyAI/RealtimeAPI}"

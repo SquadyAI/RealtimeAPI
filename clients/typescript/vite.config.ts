@@ -21,32 +21,28 @@ export default defineConfig({
     // by ort at runtime via new Worker() and WebAssembly.instantiate().
     viteStaticCopy({
       targets: [
+        // Strip full source path so files land at dest root, not node_modules/…/dist/
         {
           src: 'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded*.wasm',
           dest: '.',
+          rename: { stripBase: true },
         },
         {
           src: 'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded*.mjs',
           dest: '.',
-        },
-        {
-          src: 'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded*.wasm',
-          dest: 'assets',
-        },
-        {
-          src: 'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded*.mjs',
-          dest: 'assets',
+          rename: { stripBase: true },
         },
         {
           src: 'src/assets/squady.png',
           dest: '.',
+          rename: { stripBase: true },
         },
       ],
     }),
     VitePWA({
       registerType: 'prompt',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,onnx}'],
+        globPatterns: ['**/*.{js,mjs,css,html,ico,png,svg,wasm,onnx}'],
         maximumFileSizeToCacheInBytes: 50 * 1024 * 1024, // 50MB，支持大文件如WASM和ONNX
         navigateFallback: null, // 禁用导航回退
         runtimeCaching: [

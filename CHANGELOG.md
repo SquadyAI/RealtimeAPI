@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-03-30
+
+### Fixed
+- ort-wasm files now copied to playground root via `stripBase: true`, fixing 404 on `/ort-wasm-simd-threaded.jsep.mjs`
+- Added `mjs` to workbox `globPatterns` so all WASM/MJS runtime files are precached by the service worker
+- Removed duplicate ort-wasm copies from `assets/` and `node_modules/` in playground
+
 ## [1.0.1] - 2026-03-30
 
 ### Fixed
